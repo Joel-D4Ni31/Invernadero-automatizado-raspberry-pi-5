@@ -36,10 +36,9 @@ RESOURCES = {
     "Relay8": "Relay_BombaTanque"
 }
 
-# --- Configuración SPI (MCP3008 para LDR) ---
-spi = spidev.SpiDev()
-spi.open(0, 0)
-spi.max_speed_hz = 1350000
+# --- Configuración LM393 para LDR ---
+LDR_PIN = 18  # Usamos GPIO18 para la señal digital del sensor
+GPIO.setup(LDR_PIN, GPIO.IN)
 
 def read_adc(channel):
     adc = spi.xfer2([1, (8+channel)<<4, 0])
@@ -148,7 +147,7 @@ client.loop_start()
 SOIL_LOW = 40
 SOIL_HIGH = 90
 AIR_BAD = 300
-LIGHT_LOW = 200
+LIGHT_LOW = 0
 TEMP_HIGH = 30
 TEMP_LOW = 15
 HUM_LOW = 40
@@ -163,7 +162,7 @@ try:
         payload = {}
 
         # Sensores Raspberry
-        ldr_value = read_adc(0)
+        ldr_value = GPIO.input(LDR_PIN)  # 0 o 1, dependiendo de si hay luz o no
         humedad, temperatura = Adafruit_DHT.read_retry(DHT_SENSOR, DHT_PIN)
         payload[RESOURCES["Light"]] = ldr_value
         if humedad is not None and temperatura is not None:
@@ -200,7 +199,7 @@ try:
             rain = payload.get(RESOURCES["Rain"], 0)
             set_relay("Relay7", rain > RAIN_WET)
 
-            set_relay("Relay3", ldr_value < LIGHT_LOW)
+            set_relay("Relay3", ldr_value == LIGHT_LOW)
 
             if temperatura is not None:
                 if temperatura > TEMP_HIGH or (humedad and humedad > HUM_HIGH):
